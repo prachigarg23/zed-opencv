@@ -1,27 +1,6 @@
-///////////////////////////////////////////////////////////////////////////
-//
-// Copyright (c) 2017, STEREOLABS.
-//
-// All rights reserved.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-///////////////////////////////////////////////////////////////////////////
-
-/***********************************************************************************************
- ** This sample demonstrates how to use the ZED SDK with OpenCV. 					  	      **
- ** Depth and images are captured with the ZED SDK, converted to OpenCV format and displayed. **
- ***********************************************************************************************/
+//how to use the ZED SDK with YOLO to find the distance of objects detected by yolo from the camera 
+// this code here will be included in the demo.c file in YOLO darknet 
+// a JETSON TX1  platform is being used for implementation 
 
  // ZED includes
 #include <sl_zed/Camera.hpp>
@@ -35,8 +14,8 @@
 using namespace sl;
 
 cv::Mat slMat2cvMat(Mat& input);
-void printHelp();
 
+//put the following code inside void demo instead of int main 
 int main(int argc, char **argv) {
 
     // Create a ZED camera object
@@ -47,6 +26,8 @@ int main(int argc, char **argv) {
     init_params.camera_resolution = RESOLUTION_HD1080;
     init_params.depth_mode = DEPTH_MODE_PERFORMANCE;
     init_params.coordinate_units = UNIT_METER;
+ 
+    //code to use the zed on a file supplied to it instead of using the camera
     if (argc > 1) init_params.svo_input_filename.set(argv[1]);
         
     // Open the camera
@@ -57,17 +38,11 @@ int main(int argc, char **argv) {
         return 1; // Quit if an error occurred
     }
 
-    // Display help in console
-    printHelp();
-
-    // Set runtime parameters after opening the camera
-    RuntimeParameters runtime_parameters;
-    runtime_parameters.sensing_mode = SENSING_MODE_STANDARD;
 
     // Prepare new image size to retrieve half-resolution images
     Resolution image_size = zed.getResolution();
-    int new_width = image_size.width / 2;
-    int new_height = image_size.height / 2;
+    int new_width = image_size.width;
+    int new_height = image_size.height;
 
     // To share data between sl::Mat and cv::Mat, use slMat2cvMat()
     // Only the headers and pointer to the sl::Mat are copied, not the data itself
@@ -77,29 +52,19 @@ int main(int argc, char **argv) {
     cv::Mat depth_image_ocv = slMat2cvMat(depth_image_zed);
     Mat point_cloud;
 
-    // Loop until 'q' is pressed
+ /*   // Loop until 'q' is pressed
     char key = ' ';
-    while (key != 'q') {
+    while (key != 'q') {*/
 
         if (zed.grab(runtime_parameters) == SUCCESS) {
 
-            // Retrieve the left image, depth image in half-resolution
-            zed.retrieveImage(image_zed, VIEW_LEFT, MEM_CPU, new_width, new_height);
-            zed.retrieveImage(depth_image_zed, VIEW_DEPTH, MEM_CPU, new_width, new_height);
-
-            // Retrieve the RGBA point cloud in half-resolution
-            // To learn how to manipulate and display point clouds, see Depth Sensing sample
+            // Retrieve the SIDE-BY-SIDE image, depth image
+            zed.retrieveImage(image_zed, VIEW_SIDE_BY_SIDE, MEM_CPU, new_width, new_height);
+            zed.retrieveImage(depth_image_zed, VIEW_SIDE_BY_SIDE, MEM_CPU, new_width, new_height);
+         
             zed.retrieveMeasure(point_cloud, MEASURE_XYZRGBA, MEM_CPU, new_width, new_height);
-
-            // Display image and depth using cv:Mat which share sl:Mat data
-            cv::imshow("Image", image_ocv);
-            cv::imshow("Depth", depth_image_ocv);
-
-            // Handle key event
-            key = cv::waitKey(10);
-            processKeyEvent(zed, key);
+         
         }
-    }
     zed.close();
     return 0;
 }
@@ -127,13 +92,3 @@ cv::Mat slMat2cvMat(Mat& input) {
     return cv::Mat(input.getHeight(), input.getWidth(), cv_type, input.getPtr<sl::uchar1>(MEM_CPU));
 }
 
-/**
-* This function displays help in console
-**/
-void printHelp() {
-    std::cout << " Press 's' to save Side by side images" << std::endl;
-    std::cout << " Press 'p' to save Point Cloud" << std::endl;
-    std::cout << " Press 'd' to save Depth image" << std::endl;
-    std::cout << " Press 'm' to switch Point Cloud format" << std::endl;
-    std::cout << " Press 'n' to switch Depth format" << std::endl;
-}
